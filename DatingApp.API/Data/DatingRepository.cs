@@ -17,6 +17,8 @@ namespace DatingApp.API.Data
 
         public async Task<User> GetUser(int id) => await _context.Users.Include(u => u.Photos).FirstOrDefaultAsync(u => u.Id == id);
 
+        public async Task<Photo> GetPhoto(int id) => await _context.Photos.FirstOrDefaultAsync(p => p.Id == id);
+
         public async Task<IEnumerable<User>> GetUsers() => await _context.Users.Include(u => u.Photos).ToListAsync();
 
         public async Task<bool> SaveAll() => await _context.SaveChangesAsync() > 0;
