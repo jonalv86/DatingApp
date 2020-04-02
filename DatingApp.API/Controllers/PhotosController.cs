@@ -75,5 +75,46 @@ namespace DatingApp.API.Controllers
 
             return BadRequest("No hemos podido agregar su foto");
         }
+
+        [HttpPost("{id}/setMain")]
+        public async Task<IActionResult> SetMainPhoto(int userId, int id)
+        {
+            if (userId != int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value)) return Unauthorized();
+            var user = await _repo.GetUser(userId);
+    
+            if (!(await _repo.GetUser(userId)).Photos.Any(p => p.Id == id)) return Unauthorized();
+
+            var photoFromRepo = await _repo.GetPhoto(id);
+
+            if (photoFromRepo.IsMain) return BadRequest("Actualmente esta foto es la principal");
+
+            var currentMainPhoto = await _repo.GetMainPhotoForUser(userId);
+            currentMainPhoto.IsMain = false;
+            
+            photoFromRepo.IsMain = true;
+
+            if (await _repo.SaveAll()) return NoContent();
+
+            return BadRequest("No se pudo establecer la foto como principal");
+        }
+
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeletePhoto(int userId, int id)
+        {
+            if (userId != int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value)) return Unauthorized();
+            var user = await _repo.GetUser(userId);
+    
+            if (!(await _repo.GetUser(userId)).Photos.Any(p => p.Id == id)) return Unauthorized();
+
+            var photoFromRepo = await _repo.GetPhoto(id);
+
+            if (photoFromRepo.IsMain) return BadRequest("No podés eliminar tu foto principal");
+
+            if (photoFromRepo.PublicId == null || _cloudinary.Destroy(new DeletionParams(photoFromRepo.PublicId)).Result == "ok") _repo.Delete(photoFromRepo);
+
+            if (await _repo.SaveAll()) return Ok();
+            
+            return BadRequest("No se pudo eliminar la foto");
+        }
     }
 }
