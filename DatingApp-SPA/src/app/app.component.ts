@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, LOCALE_ID, Inject } from '@angular/core';
 import { JwtHelperService } from '@auth0/angular-jwt';
 import { AuthService } from './_services/auth.service';
 import { User } from './_models/user';
@@ -11,8 +11,12 @@ import { User } from './_models/user';
 
 export class AppComponent implements OnInit {
   jwtHelper = new JwtHelperService();
+  languageList = [{ code: 'es', label: 'Espanol' }];
 
-  constructor(private authService: AuthService) { }
+  constructor(
+    @Inject(LOCALE_ID) protected localeId: string,
+    private authService: AuthService
+  ) { }
 
   ngOnInit(): void {
     const token = localStorage.getItem('token');
