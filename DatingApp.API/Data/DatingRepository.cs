@@ -31,6 +31,16 @@ namespace DatingApp.API.Data
                 var maxDob = DateTime.Now.AddYears(-userParams.MinAge);
                 qry = qry.Where(u => u.DateOfBirth >= minDob && u.DateOfBirth <= maxDob);
             }
+            if (userParams.Likers)
+            {
+                var userLikers = await GetUserLikes(userParams.UserId, userParams.Likers);
+                qry = qry.Where(u => userLikers.Contains(u.Id));
+            }
+            if (userParams.Likees)
+            {
+                var userLikees = await GetUserLikes(userParams.UserId, userParams.Likers);
+                qry = qry.Where(u => userLikees.Contains(u.Id));
+            }
             switch (userParams.OrderBy)
             {
                 case "created":
@@ -39,17 +49,20 @@ namespace DatingApp.API.Data
                 default:
                     qry = qry.OrderByDescending(u => u.LastActive);
                     break;
-                    
             }
-            return await PagedList<User>.CreateAsync(
-                qry,
-                userParams.PageNumber,
-                userParams.PageSize
-            );
-        } 
+            return await PagedList<User>.CreateAsync(qry, userParams.PageNumber, userParams.PageSize);
+        }
 
         public async Task<bool> SaveAll() => await _context.SaveChangesAsync() > 0;
 
         public async Task<Photo> GetMainPhotoForUser(int userId) => await _context.Photos.FirstOrDefaultAsync(p => p.UserId == userId && p.IsMain);
+
+        public async Task<Like> GetLike(int userId, int recipientId) => await _context.Likes.FirstOrDefaultAsync(l => l.LikerId == userId && l.LikeeId == recipientId);
+
+        private async Task<IEnumerable<int>> GetUserLikes(int id, bool likers)
+        {
+            var user = await _context.Users.Include(u => u.Likers).Include(u => u.Likees).FirstOrDefaultAsync(u => u.Id == id);
+            return likers ? user.Likers.Where(u => u.LikeeId == id).Select(u => u.LikerId) : user.Likees.Where(u => u.LikerId == id).Select(u => u.LikeeId);
+        }
     }
 }
