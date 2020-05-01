@@ -24,7 +24,7 @@ namespace DatingApp.API
                 }
                 catch (Exception ex)
                 {
-                    services.GetRequiredService<ILogger<Program>>().LogError(ex, "An error occur during migration");
+                    services.GetRequiredService<ILogger<Program>>().LogError(ex, "Ocurrió un error durante la migración");
                 }
             }
             host.Run();
