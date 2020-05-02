@@ -18,13 +18,13 @@ namespace DatingApp.API.Data
 
         public void Delete<T>(T entity) where T : class => _context.Remove(entity);
 
-        public async Task<User> GetUser(int id) => await _context.Users.Include(u => u.Photos).FirstOrDefaultAsync(u => u.Id == id);
+        public async Task<User> GetUser(int id) => await _context.Users.FirstOrDefaultAsync(u => u.Id == id);
 
         public async Task<Photo> GetPhoto(int id) => await _context.Photos.FirstOrDefaultAsync(p => p.Id == id);
 
         public async Task<PagedList<User>> GetUsers(UserParams userParams) 
         {
-            var qry = _context.Users.Include(u => u.Photos).Where(u => u.Id != userParams.UserId && u.Gender == userParams.Gender).AsQueryable();
+            var qry = _context.Users.Where(u => u.Id != userParams.UserId && u.Gender == userParams.Gender).AsQueryable();
             if (userParams.MinAge != 18 || userParams.MaxAge != 99)
             {
                 var minDob = DateTime.Now.AddYears(-userParams.MaxAge-1);
@@ -61,7 +61,7 @@ namespace DatingApp.API.Data
 
         private async Task<IEnumerable<int>> GetUserLikes(int id, bool likers)
         {
-            var user = await _context.Users.Include(u => u.Likers).Include(u => u.Likees).FirstOrDefaultAsync(u => u.Id == id);
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == id);
             return likers ? user.Likers.Where(u => u.LikeeId == id).Select(u => u.LikerId) : user.Likees.Where(u => u.LikerId == id).Select(u => u.LikeeId);
         }
 
@@ -69,7 +69,7 @@ namespace DatingApp.API.Data
 
         public async Task<PagedList<Message>> GetMessagesForUser(MessageParams messageParams)
         {
-            var qry = _context.Messages.Include(m => m.Sender).ThenInclude(u => u.Photos).Include(m => m.Recipient).ThenInclude(u => u.Photos).AsQueryable();
+            var qry = _context.Messages.AsQueryable();
             switch (messageParams.MessageContainer)
             {
                 case "Inbox":
@@ -87,9 +87,8 @@ namespace DatingApp.API.Data
         }
 
         public async Task<IEnumerable<Message>> GetMessageThread(int userId, int recipientId) => 
-            await _context.Messages.Include(m => m.Sender).ThenInclude(u => u.Photos).Include(m => m.Recipient).ThenInclude(u => u.Photos)
-                .Where(m => m.RecipientId == userId && !m.RecipientDeleted && m.SenderId == recipientId || 
-                       m.RecipientId == recipientId && !m.SenderDeleted && m.SenderId == userId)
-                .OrderByDescending(m => m.MessageSent).ToListAsync();
+            await _context.Messages.Where(m =>
+                m.RecipientId == userId && !m.RecipientDeleted && m.SenderId == recipientId || 
+                m.RecipientId == recipientId && !m.SenderDeleted && m.SenderId == userId).OrderByDescending(m => m.MessageSent).ToListAsync();
     }
 }
