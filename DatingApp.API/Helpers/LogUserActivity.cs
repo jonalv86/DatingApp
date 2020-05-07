@@ -13,7 +13,7 @@ namespace DatingApp.API.Helpers
         {
             var resultContext = await next();
             var repo = resultContext.HttpContext.RequestServices.GetService<IDatingRepository>();
-            var user = await repo.GetUser(int.Parse(resultContext.HttpContext.User.FindFirst(ClaimTypes.NameIdentifier).Value));
+            var user = await repo.GetUser(int.Parse(resultContext.HttpContext.User.FindFirst(ClaimTypes.NameIdentifier).Value), true);
             user.LastActive = DateTime.Now;
             await repo.SaveAll();
         }

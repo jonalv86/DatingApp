@@ -18,9 +18,14 @@ namespace DatingApp.API.Data
 
         public void Delete<T>(T entity) where T : class => _context.Remove(entity);
 
-        public async Task<User> GetUser(int id) => await _context.Users.FirstOrDefaultAsync(u => u.Id == id);
+        public async Task<User> GetUser(int id, bool isCurrentUser)
+        {
+            var qry = _context.Users.Include(p => p.Photos).AsQueryable();
+            if (isCurrentUser) qry = qry.IgnoreQueryFilters();
+            return await qry.FirstOrDefaultAsync(u => u.Id == id);
+        }
 
-        public async Task<Photo> GetPhoto(int id) => await _context.Photos.FirstOrDefaultAsync(p => p.Id == id);
+        public async Task<Photo> GetPhoto(int id) => await _context.Photos.IgnoreQueryFilters().FirstOrDefaultAsync(p => p.Id == id);
 
         public async Task<PagedList<User>> GetUsers(UserParams userParams) 
         {

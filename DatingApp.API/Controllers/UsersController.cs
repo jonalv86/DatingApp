@@ -13,7 +13,6 @@ using Microsoft.AspNetCore.Mvc;
 namespace DatingApp.API.Controllers
 {
     [ServiceFilter(typeof(LogUserActivity))]
-    [Authorize]
     [Route("api/[controller]")]
     [ApiController]
     public class UsersController : ControllerBase
@@ -30,7 +29,7 @@ namespace DatingApp.API.Controllers
         [HttpGet]
         public async Task<IActionResult> GetUsers([FromQuery]UserParams userParams)
         {
-            var loggedUser = await _repo.GetUser( int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value));
+            var loggedUser = await _repo.GetUser(int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value), true);
             userParams.UserId = loggedUser.Id;
             userParams.Gender = string.IsNullOrEmpty(userParams.Gender) ? (loggedUser.Gender == "male" ? "female" : "male") : userParams.Gender;
             var userPagedList = await _repo.GetUsers(userParams);
@@ -39,13 +38,13 @@ namespace DatingApp.API.Controllers
         }
 
         [HttpGet("{id}", Name = "GetUser")]
-        public async Task<IActionResult> GetUser(int id) => Ok(_mapper.Map<UserForDetailedDto>(await _repo.GetUser(id)));
+        public async Task<IActionResult> GetUser(int id) => Ok(_mapper.Map<UserForDetailedDto>(await _repo.GetUser(id, int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value) == id)));
 
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateUser(int id, UserForUpdateDto userForUpdateDto)
         {
             if (id != int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value)) return Unauthorized();
-            var userFromRepo = await _repo.GetUser(id);
+            var userFromRepo = await _repo.GetUser(id, true);
             _mapper.Map(userForUpdateDto, userFromRepo);
             if (await _repo.SaveAll()) return NoContent();
             throw new Exception($"Updating user {id} failed in save");
@@ -56,7 +55,7 @@ namespace DatingApp.API.Controllers
         {
             if (id != int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value)) return Unauthorized();
             if (await _repo.GetLike(id, recipientId) != null) return BadRequest("Ya te gusta ese usuario");
-            if (await _repo.GetUser(recipientId) == null) return NotFound();
+            if (await _repo.GetUser(recipientId, false) == null) return NotFound();
             _repo.Add<Like>(new Like
             {
                 LikerId = id,
